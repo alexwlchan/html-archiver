@@ -38,7 +38,8 @@ class HTMLArchiver:
     def archive_css(self, css_string, base_url):
         """
         Given a block of CSS, find any instances of the `url()` data type
-        that refer to remote resources and replace them with base64-encoded data.
+        that refer to remote resources and replace them with
+        a base64-encoded data URI.
         """
         # It would be nice to do this with a proper CSS parser, but all the
         # ones I've tried are missing modern CSS features, e.g. ignore URIs in
