@@ -62,6 +62,7 @@ class HTMLArchiver:
         soup = self._archive_js_scripts(soup, base_url=base_url)
         soup = self._archive_style_tags(soup, base_url=base_url)
         soup = self._archive_link_tags(soup, base_url=base_url)
+        soup = self._archive_img_tags(soup, base_url=base_url)
 
         return str(soup)
 
@@ -71,14 +72,31 @@ class HTMLArchiver:
         try:
             return self.cached_resources[url]
         except KeyError:
-            import q; q.q(url)
             resp = self.sess.get(url, stream=True)
             if resp.status_code == 200:
                 self.cached_resources[url] = resp
                 return self.cached_resources[url]
             else:
+                warnings.warn(
+                    'Unable to fetch %r [%d]' % (url, resp.status_code)
+                )
                 self.bad_urls.add(url)
                 return None
+
+    def _get_base64_encode(self, url):
+        extension = os.path.splitext(urlparse(url).path)[1]
+        extension = extension[1:]  # Lose the leading .
+        try:
+            media_type = DATA_MEDIA_TYPES[extension]
+        except KeyError:
+            warnings.warn('Unable to determine media_type for %r' % url)
+            return None
+
+        resp = self._get_resource(url)
+        if resp is None:
+            return None
+        encoded_string = base64.b64encode(resp.raw.read())
+        return 'data:%s;base64,%s' % (media_type, encoded_string.decode())
 
     def _archive_js_scripts(self, soup, base_url):
         """
@@ -136,6 +154,19 @@ class HTMLArchiver:
             link_tag.replace_with(style_tag)
         return soup
 
+    def _archive_img_tags(self, soup, base_url):
+        """
+        Archive all the <img> tags in a soup.
+        """
+        for img_tag in soup.find_all('img'):
+            if img_tag.get('src') is None:
+                continue
+
+            resource_url = urljoin(base_url, img_tag['src'])
+            data = self._get_base64_encode(resource_url)
+            img_tag['src'] = data
+        return soup
+
     def archive_css(self, css_string, base_url):
         """
         Given a block of CSS, find any instances of the `url()` data type
@@ -162,15 +193,8 @@ class HTMLArchiver:
 
             # Determine the media type for the data: URI
             resource_url = urljoin(base_url, resource_url)
-            extension = os.path.splitext(urlparse(resource_url).path)[1]
-            extension = extension[1:]  # Lose the leading .
-            media_type = DATA_MEDIA_TYPES[extension]
-
-            resp = self._get_resource(resource_url)
-            if resp is None:
-                continue
-            encoded_string = base64.b64encode(resp.raw.read())
-            data = 'data:%s;base64,%s' % (media_type, encoded_string.decode())
-            css_string = css_string.replace(match.group('url'), data)
+            data = self._get_base64_encode(resource_url)
+            if data is not None:
+                css_string = css_string.replace(match.group('url'), data)
 
         return css_string
