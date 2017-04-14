@@ -23,56 +23,63 @@ DATA_MEDIA_TYPES = {
 }
 
 
-def archive_css(css_string, base_url):
-    """
-    Given a block of CSS, find any instances of the `url()` data type
-    that refer to remote resources and replace them with base64-encoded data.
-    """
-    bad_urls = set()
-    cached_resources = {}
+class HTMLArchiver:
 
-    # It would be nice to do this with a proper CSS parser, but all the ones
-    # I've tried are missing modern CSS features, e.g. ignore URIs in
-    # a @font-face rule.
-    for match in re.finditer(r'url\((?P<url>[^\)]+)\)', css_string):
-        resource_url = match.group('url')
-        resource_url = resource_url.strip('"').strip("'")
+    def __init__(self, sess=None):
+        if sess is None:
+            sess = requests.Session()
 
-        # Something to do with SVG resources that are identified elsewhere
-        # in the stylesheet
-        resource_url = unquote_plus(resource_url)
-        if resource_url.startswith('#'):
-            continue
+        #: URLs for resources we've tried to cache but failed
+        self.bad_urls = set()
 
-        # Any existing data: URIs are already self-contained and don't
-        # need changing.
-        if resource_url.startswith('data:'):
-            continue
+        #: Cached resources
+        self.cached_resources = {}
 
-        # Determine the media type for the data: URI
-        resource_url = urljoin(base_url, resource_url)
-        extension = os.path.splitext(urlparse(resource_url).path)[1]
-        extension = extension[1:]  # Lose the leading .
-        media_type = DATA_MEDIA_TYPES[extension]
+    def archive_css(self, css_string, base_url):
+        """
+        Given a block of CSS, find any instances of the `url()` data type
+        that refer to remote resources and replace them with base64-encoded data.
+        """
+        # It would be nice to do this with a proper CSS parser, but all the
+        # ones I've tried are missing modern CSS features, e.g. ignore URIs in
+        # a @font-face rule.
+        for match in re.finditer(r'url\((?P<url>[^\)]+)\)', css_string):
+            resource_url = match.group('url')
+            resource_url = resource_url.strip('"').strip("'")
 
-        try:
-            data = cached_resources[resource_url]
-        except KeyError:
-            if resource_url in bad_urls:
-                continue
-            import q; q.q(resource_url)
-            resp = requests.get(resource_url, stream=True)
-            if resp.status_code == 200:
-                encoded_string = base64.b64encode(resp.raw.read())
-                data = 'data:%s;base64,%s' % (
-                    media_type, encoded_string.decode())
-                cached_resources[resource_url] = data
-            else:
-                warnings.warn('Unable to save resource %r [%d]' % (
-                    resource_url, resp.status_code))
-                bad_urls.add(resource_url)
+            # Something to do with SVG resources that are identified elsewhere
+            # in the stylesheet
+            resource_url = unquote_plus(resource_url)
+            if resource_url.startswith('#'):
                 continue
 
-        css_string = css_string.replace(match.group('url'), data)
+            # Any existing data: URIs are already self-contained and don't
+            # need changing.
+            if resource_url.startswith('data:'):
+                continue
 
-    return css_string
+            # Determine the media type for the data: URI
+            resource_url = urljoin(base_url, resource_url)
+            extension = os.path.splitext(urlparse(resource_url).path)[1]
+            extension = extension[1:]  # Lose the leading .
+            media_type = DATA_MEDIA_TYPES[extension]
+
+            if resource_url in self.bad_urls:
+                continue
+            try:
+                resp_data = self.cached_resources[resource_url]
+            except KeyError:
+                resp_data = self.sess.get(resource_url, stream=True)
+                if resp.status_code == 200:
+                    self.cached_resources[resource_url] = resp.raw.read()
+                else:
+                    warnings.warn('Unable to save resource %r [%d]' % (
+                        resource_url, resp.status_code))
+                    self.bad_urls.add(resource_url)
+                    continue
+
+            encoded_string = base64.b64encode(resp_data)
+            data = 'data:%s;base64,%s' % (media_type, encoded_string.decode())
+            css_string = css_string.replace(match.group('url'), data)
+
+        return css_string
