@@ -7,6 +7,7 @@ import re
 import warnings
 from urllib.parse import urljoin, urlparse, unquote_plus
 
+from bs4 import BeautifulSoup
 import requests
 
 
@@ -27,13 +28,113 @@ class HTMLArchiver:
 
     def __init__(self, sess=None):
         if sess is None:
-            sess = requests.Session()
+            self.sess = requests.Session()
 
         #: URLs for resources we've tried to cache but failed
         self.bad_urls = set()
 
         #: Cached resources
         self.cached_resources = {}
+
+    def archive_url(self, url):
+        """
+        Given a URL, return a single-page HTML archive.
+        """
+        return self.archive_html(self.sess.get(url).text, base_url=url)
+
+    def archive_html(self, html_string, base_url):
+        """
+        Given a block of HTML, return a single-page HTML archive.
+        """
+        soup = BeautifulSoup(html_string, 'html.parser')
+
+        # Make sure there's a <meta charset="utf-8"> tag in the <head>,
+        # because this uses UTF-8.
+        head = soup.find('head')
+        for meta_tag in head.find('meta'):
+            if 'charset' in meta_tag.attrs:
+                break
+        else:  # no break
+            meta_tag = soup.new_tag(name='meta')
+            meta_tag.attrs['charset'] = 'utf-8'
+            head.insert(0, meta_tag)
+
+        soup = self._archive_js_scripts(soup, base_url=base_url)
+        soup = self._archive_style_tags(soup, base_url=base_url)
+        soup = self._archive_link_tags(soup, base_url=base_url)
+
+        return str(soup)
+
+    def _get_resource(self, url):
+        if url in self.bad_urls:
+            return None
+        try:
+            return self.cached_resources[url]
+        except KeyError:
+            import q; q.q(url)
+            resp = self.sess.get(url, stream=True)
+            if resp.status_code == 200:
+                self.cached_resources[url] = resp
+                return self.cached_resources[url]
+            else:
+                self.bad_urls.add(url)
+                return None
+
+    def _archive_js_scripts(self, soup, base_url):
+        """
+        Archive all the <script> tags in a soup.
+        """
+        for js_tag in soup.find_all('script'):
+            if js_tag.attrs.get('type') != 'text/javascript':
+                continue
+            if js_tag.attrs.get('src') is None:
+                continue
+
+            new_tag = soup.new_tag(name='script')
+            resource_url = urljoin(base_url, js_tag.attrs['src'])
+
+            resp = self._get_resource(resource_url)
+            if resp is None:
+                continue
+
+            new_tag.string = '\n' + resp.text.strip() + '\n'
+            new_tag.attrs['type'] = 'text/javascript'
+            js_tag.replace_with(new_tag)
+        return soup
+
+    def _archive_style_tags(self, soup, base_url):
+        """
+        Archive all the <style> tags in a soup.
+        """
+        for style_tag in soup.find_all('style'):
+            css_string = style_tag.string
+            css_string = self.archive_css(css_string, base_url=base_url)
+            style_tag.string = css_string
+        return soup
+
+    def _archive_link_tags(self, soup, base_url):
+        """
+        Archive all the <link> tags in a soup.
+        """
+        for link_tag in soup.find_all('link', attrs={'rel': 'stylesheet'}):
+            if link_tag.get('href') is None:
+                continue
+            if not link_tag['href'].endswith('.css'):
+                continue
+
+            style_tag = soup.new_tag(name='style')
+            resource_url = urljoin(base_url, link_tag['href'])
+
+            resp = self._get_resource(resource_url)
+            if resp is None:
+                continue
+
+            css_string = resp.text.strip()
+            css_string = self.archive_css(css_string,
+                base_url=link_tag['href'])
+            style_tag.string = '\n' + css_string + '\n'
+            link_tag.replace_with(style_tag)
+        return soup
 
     def archive_css(self, css_string, base_url):
         """
@@ -65,21 +166,10 @@ class HTMLArchiver:
             extension = extension[1:]  # Lose the leading .
             media_type = DATA_MEDIA_TYPES[extension]
 
-            if resource_url in self.bad_urls:
+            resp = self._get_resource(resource_url)
+            if resp is None:
                 continue
-            try:
-                resp_data = self.cached_resources[resource_url]
-            except KeyError:
-                resp_data = self.sess.get(resource_url, stream=True)
-                if resp.status_code == 200:
-                    self.cached_resources[resource_url] = resp.raw.read()
-                else:
-                    warnings.warn('Unable to save resource %r [%d]' % (
-                        resource_url, resp.status_code))
-                    self.bad_urls.add(resource_url)
-                    continue
-
-            encoded_string = base64.b64encode(resp_data)
+            encoded_string = base64.b64encode(resp.raw.read())
             data = 'data:%s;base64,%s' % (media_type, encoded_string.decode())
             css_string = css_string.replace(match.group('url'), data)
 
