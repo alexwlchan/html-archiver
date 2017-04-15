@@ -5,6 +5,25 @@ html-archiver is a Python module for creating a self-contained HTML archive
 of a web page.  It inlines everything on the page – CSS, JavaScript, images –
 so you have an entire copy of the page in a single file.
 
+For a while I've used the `page archiving tool`_ on Pinboard, which takes a
+similar approach: inline CSS and JavaScript, grab a local copy of images,
+base64-encode certain elements.  I wrote this because I wanted a couple of
+extra features:
+
+*  A tool that didn't rely on a third-party service
+*  Support for saving resources in ``url()`` values in CSS (e.g. webfonts)
+*  A single-page output -- Pinboard saves images as separate files, and serves
+   them alongside the HTML
+
+It isn't perfect -- if you want a true archival copy, you'd be better off
+saving all the resources individually, and mimicing the web server layout --
+but this is really aimed at making quick and cheap copies.
+
+.. _page archiving tool: https://pinboard.in/tour/#archive
+
+Usage
+*****
+
 It can be invoked from the command line:
 
 .. code-block:: console
