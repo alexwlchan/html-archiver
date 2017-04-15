@@ -201,7 +201,7 @@ class HTMLArchiver:
 
             css_string = resp.text.strip()
             css_string = self.archive_css(css_string,
-                base_url=link_tag['href'])
+                base_url=resource_url)
 
             match = re.search(
                 r'<link .*?href=(?P<quot>[\'"]?)%s(?P=quot)[^>]*>' % (
