@@ -4,6 +4,7 @@
 import base64
 import os
 import re
+import sys
 import warnings
 from urllib.parse import urljoin, urlparse, unquote_plus
 
@@ -262,3 +263,10 @@ class HTMLArchiver:
                 css_string = css_string.replace(match.group('url'), data)
 
         return css_string
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        sys.exit('Usage: %s <url>' % os.path.basename(__file__))
+    archiver = HTMLArchiver()
+    print(archiver.archive_url(sys.argv[1]))
