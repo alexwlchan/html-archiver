@@ -113,9 +113,10 @@ class HTMLArchiver:
         """
         Archive all the <script> tags in a soup.
         """
-        for js_tag in soup.find_all('script'):
-            if js_tag.attrs.get('type') != 'text/javascript':
-                continue
+        desired_attrs = {
+            'type': 'text/javascript',
+        }
+        for js_tag in soup.find_all('script', attrs=desired_attrs):
             if js_tag.attrs.get('src') is None:
                 continue
 
@@ -183,10 +184,12 @@ class HTMLArchiver:
         """
         Archive all the <link> tags in a soup.
         """
-        for link_tag in soup.find_all('link', attrs={'rel': 'stylesheet'}):
+        desired_attrs = {
+            'rel': 'stylesheet',
+            'type': 'text/css',
+        }
+        for link_tag in soup.find_all('link', attrs=desired_attrs):
             if link_tag.get('href') is None:
-                continue
-            if not link_tag['href'].endswith('.css'):
                 continue
 
             style_tag = soup.new_tag(name='style')
