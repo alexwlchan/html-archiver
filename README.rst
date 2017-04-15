@@ -37,7 +37,7 @@ or from Python:
    from archiver import HTMLArchiver
 
    a = HTMLArchiver()
-   a.archive("http://example.org/foo/bar")
+   a.archive_url("http://example.org/foo/bar")
 
 Features
 ********
