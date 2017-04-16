@@ -115,8 +115,7 @@ Clone this repository and install dependencies with pip:
    $ source env/bin/activate
    $ pip install -r requirements.txt
 
-I develop and test against Python 3.  I think it should work with Python 2,
-but I don't make any guarantees.
+I develop and test against Python 2.7 and Python 3.3+.
 
 Issues
 ******

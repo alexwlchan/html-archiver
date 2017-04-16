@@ -6,7 +6,12 @@ import os
 import re
 import sys
 import warnings
-from urllib.parse import urljoin, urlparse, unquote_plus
+
+try:
+    from urllib.parse import urljoin, urlparse, unquote_plus
+except ImportError:
+    from urllib import unquote_plus
+    from urlparse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 import requests
@@ -30,6 +35,8 @@ class HTMLArchiver:
     def __init__(self, sess=None):
         if sess is None:
             self.sess = requests.Session()
+        else:
+            self.sess = sess
 
         #: URLs for resources we've tried to cache but failed
         self.bad_urls = set()
@@ -51,8 +58,8 @@ class HTMLArchiver:
         # because this uses UTF-8.
         soup = BeautifulSoup(html_string, 'html.parser')
         head = soup.find('head')
-        for meta_tag in head.find('meta'):
-            if 'charset' in meta_tag.attrs:
+        for meta_tag in head.find_all('meta'):
+            if meta_tag.get('charset') is not None:
                 break
         else:  # no break
             html_string = html_string.replace(
