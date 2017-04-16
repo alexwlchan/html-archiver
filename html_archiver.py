@@ -48,7 +48,11 @@ class HTMLArchiver:
         """
         Given a URL, return a single-page HTML archive.
         """
-        return self.archive_html(self.sess.get(url).text, base_url=url)
+        resp = self.sess.get(url)
+        if resp.status_code != 200:
+            raise RuntimeError('Unable to fetch %r [%d]' % (
+                url, resp.status_code))
+        return self.archive_html(resp.text, base_url=url)
 
     def archive_html(self, html_string, base_url):
         """
