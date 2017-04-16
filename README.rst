@@ -28,13 +28,13 @@ It can be invoked from the command line:
 
 .. code-block:: console
 
-   $ python3 archiver.py "http://example.org/foo/bar"
+   $ python3 html_archiver.py "http://example.org/foo/bar"
 
 or from Python:
 
 .. code-block:: python
 
-   from archiver import HTMLArchiver
+   from html_archiver import HTMLArchiver
 
    a = HTMLArchiver()
    a.archive_url("http://example.org/foo/bar")
