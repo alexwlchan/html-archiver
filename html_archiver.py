@@ -169,6 +169,11 @@ class HTMLArchiver:
         """
         for style_tag in soup.find_all('style'):
             orig_css_string = style_tag.string
+
+            # Ignore empty <style> tags
+            if orig_css_string is None:
+                continue
+
             css_string = self.archive_css(orig_css_string, base_url=base_url)
 
             # If the CSS hasn't changed, we don't need to edit the HTML
@@ -290,9 +295,8 @@ class HTMLArchiver:
             # Determine the media type for the data: URI
             resource_url = urljoin(base_url, resource_url)
             data = self._get_base64_encode(resource_url)
-            if data is None:
-                continue
-            css_string = css_string.replace(match.group('url'), data)
+            if data is not None:
+                css_string = css_string.replace(match.group('url'), data)
 
         return css_string
 
