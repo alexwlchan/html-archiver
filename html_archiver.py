@@ -58,8 +58,8 @@ class HTMLArchiver:
         # because this uses UTF-8.
         soup = BeautifulSoup(html_string, 'html.parser')
         head = soup.find('head')
-        for meta_tag in head.find('meta'):
-            if 'charset' in meta_tag.attrs:
+        for meta_tag in head.find_all('meta'):
+            if meta_tag.get('charset') is not None:
                 break
         else:  # no break
             html_string = html_string.replace(
