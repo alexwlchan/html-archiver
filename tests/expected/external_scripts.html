@@ -1,0 +1,35 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>This is a page with external scripts</title>
+
+  <!-- This is a script in the same directory -->
+  <script type="text/javascript">
+function fibonacci(n) {
+  if ((n == 1) || (n == 2)) {
+    return 1;
+  } else {
+    return fibonacci(n - 1) + fibonacci(n - 2);
+  }
+}
+</script>
+
+  <!-- A script in a subdirectory -->
+  <script type="text/javascript">
+function arithmetic_mean(x, y, z) {
+  return (x + y + z) / 3;
+}
+</script>
+
+  <!-- A script that 404s.  This should be left untouched. -->
+  <script type="text/javascript" src="no_such_script.js"></script>
+</head>
+
+<body>
+  <p>This is a page to test how html-archiver handles external scripts.</p>
+
+  <p>External scripts should always be inlined if possible.</p>
+</body>
+
+</html>

@@ -1,0 +1,43 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>This is a page with inline scripts</title>
+
+  <!-- Inline scripts can appear in the <head> -->
+
+  <script>
+    function hello_world() { console.log("Hello world!"); }
+  </script>
+
+  <script type="text/javascript">
+    function add(x, y, z) { return x + y + z; }
+  </script>
+
+  <script type="text/fooscript">
+    foo = bar(baz)
+  </script>
+
+</head>
+
+<body>
+  <p>This is a page to test how html-archiver handles inline scripts.</p>
+
+  <p>Because inline scripts do not refer to external resources, they should always be left unmodified.</p>
+
+  <!-- Or interspersed in the <body> -->
+
+  <script>
+    function hello_world() { console.log("Hello world!"); }
+  </script>
+
+  <script type="text/javascript">
+    function add(x, y, z) { return x + y + z; }
+  </script>
+
+  <script type="text/fooscript">
+    foo = bar(baz)
+  </script>
+</body>
+
+</html>
