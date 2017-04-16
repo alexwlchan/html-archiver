@@ -154,10 +154,14 @@ class HTMLArchiver:
             orig_css_string = style_tag.string
             css_string = self.archive_css(orig_css_string, base_url=base_url)
 
+            # If the CSS hasn't changed, we don't need to edit the HTML
+            if orig_css_string == css_string:
+                continue
+
             match = re.search(
-                r'<style(?P<attrs>[^>]+)>\s*?%s\s*?</style>' % (
-                    re.escape(orig_css_string)),
-                html_string
+                r'<style(?P<attrs>[^>]*)>\s*?%s\s*?</style>' % (
+                    re.escape(orig_css_string).strip()),
+                html_string,
             )
             assert match is not None, orig_css_string
             html_string = html_string.replace(
