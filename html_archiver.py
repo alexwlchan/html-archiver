@@ -43,6 +43,7 @@ class HTMLArchiver:
 
         #: Cached resources
         self.cached_resources = {}
+        self.cached_raw_resources = {}
 
     def archive_url(self, url):
         """
@@ -105,6 +106,18 @@ class HTMLArchiver:
                 self.bad_urls.add(url)
                 return None
 
+    def _get_raw_resource(self, url):
+        try:
+            return self.cached_raw_resources[url]
+        except KeyError:
+            resp = self._get_resource(url)
+            if resp is None:
+                return None
+            else:
+                raw_resp = resp.raw.read()
+                self.cached_raw_resources[url] = raw_resp
+                return raw_resp
+
     def _get_base64_encode(self, url):
         extension = os.path.splitext(urlparse(url).path)[1]
         extension = extension[1:]  # Lose the leading .
@@ -114,10 +127,10 @@ class HTMLArchiver:
             warnings.warn('Unable to determine media_type for %r' % url)
             return None
 
-        resp = self._get_resource(url)
-        if resp is None:
+        raw_resp = self._get_raw_resource(url)
+        if raw_resp is None:
             return None
-        encoded_string = base64.b64encode(resp.raw.read())
+        encoded_string = base64.b64encode(raw_resp)
         return 'data:%s;base64,%s' % (media_type, encoded_string.decode())
 
     def _archive_js_scripts(self, html_string, soup, base_url):
@@ -156,6 +169,11 @@ class HTMLArchiver:
         """
         for style_tag in soup.find_all('style'):
             orig_css_string = style_tag.string
+
+            # Ignore empty <style> tags
+            if orig_css_string is None:
+                continue
+
             css_string = self.archive_css(orig_css_string, base_url=base_url)
 
             # If the CSS hasn't changed, we don't need to edit the HTML
@@ -164,13 +182,13 @@ class HTMLArchiver:
 
             match = re.search(
                 r'<style(?P<attrs>[^>]*)>\s*?%s\s*?</style>' % (
-                    re.escape(orig_css_string).strip()),
+                    re.escape(orig_css_string)),
                 html_string,
             )
             assert match is not None, orig_css_string
             html_string = html_string.replace(
                 match.group(0),
-                '<style>\n' + css_string + '\n</style>'
+                '<style%s>\n' % match.group('attrs') + css_string.strip() + '\n</style>'
             )
             assert match.group(0) not in html_string
 

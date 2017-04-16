@@ -1,0 +1,35 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>This is a page with styles that call out to uri resources</title>
+
+  <!-- Just a straight passthrough of an image -->
+  <style>
+    div { background: url('rainbow.png'); }
+  </style>
+
+  <!-- A missing resource, so we should leave this untouched -->
+  <style>
+    div#missing { background: url('missing.jpg'); }
+  </style>
+
+  <!-- And a working resource with some attributes on the style tag -->
+  <style foo="bar">
+    div#with_attributes { background: url('snake.gif'); }
+  </style>
+
+  <!-- Look up the same image a second time -->
+  <style>
+    div#repeated { background: url('rainbow.png'); }
+  </style>
+
+</head>
+
+<body>
+  <p>This is a page to test how html-archiver handles styles that use external resources.</p>
+
+  <p>Anything with a url() that can be accessed should be inlined and base64-encoded.</p>
+</body>
+
+</html>
