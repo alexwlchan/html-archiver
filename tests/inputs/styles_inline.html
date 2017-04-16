@@ -4,11 +4,13 @@
   <meta charset="utf-8">
   <title>This is a page with inline styles</title>
 
-  <!-- Inline scripts can appear in the <head> -->
-
   <style>
     p { color: purple; }
     b { color: blue; }
+  </style>
+
+  <style foo="bar">
+    a:hover { text-decoration: none; }
   </style>
 
 </head>
@@ -18,12 +20,16 @@
 
   <p>These inline styles do not refer to external resources, so they should be left unmodified.</p>
 
-  <!-- Or interspersed in the <body> -->
+  <p style="color: orange;">This text is orange.</p>
 
   <style>
     a { color: amber; }
     p { color: pink; }
     b { color: brown; }
+  </style>
+
+  <style bar="baz">
+    strong { font-size: 1.3em; }
   </style>
 
 </body>
