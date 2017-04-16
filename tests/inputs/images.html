@@ -24,6 +24,9 @@
 
   <!-- Test that URL encoded junk is interpreted correctly -->
   <img src="spiral.jpeg?color=black&amp;alt_color=white">
+
+  <!-- Test that if an image is already base64-encoded, it's ignored -->
+  <img src="data:image/foo;base64,0123456789">
 </body>
 
 </html>
