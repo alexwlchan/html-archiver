@@ -7,9 +7,10 @@ try:
 except ImportError:
     from urllib import url2pathname
 
-from archiver import HTMLArchiver
 import requests
 import pytest
+
+from html_archiver import HTMLArchiver
 
 
 @pytest.fixture

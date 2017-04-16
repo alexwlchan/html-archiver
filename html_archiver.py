@@ -6,7 +6,12 @@ import os
 import re
 import sys
 import warnings
-from urllib.parse import urljoin, urlparse, unquote_plus
+
+try:
+    from urllib.parse import urljoin, urlparse, unquote_plus
+except ImportError:
+    from urllib import unquote_plus
+    from urlparse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 import requests
