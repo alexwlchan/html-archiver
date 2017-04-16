@@ -2,6 +2,7 @@
 # -*- encoding: utf-8
 
 import base64
+import cgi
 import os
 import re
 import sys
@@ -30,6 +31,24 @@ DATA_MEDIA_TYPES = {
 }
 
 
+def _get_encoding_from_headers(headers):
+    """Returns encodings from given HTTP Header Dict.
+
+    This is similar to a function in ``requests.utils``, but unlike that
+    function, it returns ``None`` if it is unable to positively determine
+    the encoding -- whereas requests defaults to ISO-8859-1.
+
+    :param headers: dictionary to extract encoding from.
+    """
+    content_type = headers.get('content-type')
+
+    if content_type:
+        _, params = cgi.parse_header(content_type)
+
+        if 'charset' in params:
+            return params['charset'].strip("'\"")
+
+
 class HTMLArchiver:
 
     def __init__(self, sess=None):
@@ -50,9 +69,33 @@ class HTMLArchiver:
         Given a URL, return a single-page HTML archive.
         """
         resp = self.sess.get(url)
+
         if resp.status_code != 200:
-            raise RuntimeError('Unable to fetch %r [%d]' % (
-                url, resp.status_code))
+            raise RuntimeError(
+                "Unable to fetch %r [%d]" % (url, resp.status_code)
+            )
+
+        # We assume that this is an HTML page -- try to work out the
+        # encoding.  By default, requests will use data from the HTTP headers
+        # or default to ISO-8859-1 if none is available.  We should look in
+        # the <meta> tags if we can't work out one from the headers.
+        #
+        # http://docs.python-requests.org/en/master/user/advanced/#encodings
+        # TODO: Test this code.
+        encoding = _get_encoding_from_headers(resp.headers)
+        if encoding is None:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            charsets = set([
+                m.attrs['charset']
+                for m in soup.find_all('meta')
+                if 'charset' in m.attrs])
+            if len(charsets) not in (0, 1):
+                raise RuntimeError(
+                    "Multiple <meta> encoding tags in %r" % url
+                )
+            elif len(charsets) == 1:
+                resp.encoding = charsets.pop()
+
         return self.archive_html(resp.text, base_url=url)
 
     def archive_html(self, html_string, base_url):
