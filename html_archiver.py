@@ -35,6 +35,8 @@ class HTMLArchiver:
     def __init__(self, sess=None):
         if sess is None:
             self.sess = requests.Session()
+        else:
+            self.sess = sess
 
         #: URLs for resources we've tried to cache but failed
         self.bad_urls = set()
