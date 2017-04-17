@@ -4,22 +4,6 @@ This test makes requests to real web pages (or rather, betamax copies
 of them) and tests the archiver behaviour.
 """
 
-from betamax import Betamax
-from html_archiver import HTMLArchiver
-import requests
-import pytest
-
-
-with Betamax.configure() as config:
-    config.cassette_library_dir = 'tests/fixtures/cassettes'
-
-
-@pytest.fixture
-def betamax_archiver():
-    sess = requests.Session()
-    with Betamax(sess).use_cassette('special_cases'):
-        yield HTMLArchiver(sess=sess)
-
 
 def test_marco_org_encoding_is_correct(betamax_archiver):
     """
