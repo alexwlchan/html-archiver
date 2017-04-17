@@ -104,16 +104,7 @@ class HTMLArchiver:
         """
         Given a block of HTML, return a single-page HTML archive.
         """
-        # Make sure there's a <meta charset="utf-8"> tag in the <head>,
-        # because this uses UTF-8.
         soup = BeautifulSoup(html_string, 'html.parser')
-        head = soup.find('head')
-        for meta_tag in head.find_all('meta'):
-            if meta_tag.get('charset') is not None:
-                break
-        else:  # no break
-            html_string = html_string.replace(
-                '<head>', '<head><meta charset="utf-8">')
 
         html_string = self._archive_js_scripts(
             html_string=html_string,
