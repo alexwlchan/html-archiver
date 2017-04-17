@@ -7,6 +7,7 @@ try:
 except ImportError:
     from urllib import url2pathname
 
+from betamax import Betamax
 import requests
 import pytest
 
@@ -18,6 +19,17 @@ def archiver():
     sess = requests.session()
     sess.mount('file://', LocalFileAdapter())
     return HTMLArchiver(sess=sess)
+
+
+with Betamax.configure() as config:
+    config.cassette_library_dir = 'tests/fixtures/cassettes'
+
+
+@pytest.fixture
+def betamax_archiver():
+    sess = requests.Session()
+    with Betamax(sess).use_cassette('special_cases'):
+        yield HTMLArchiver(sess=sess)
 
 
 class LocalFileAdapter(requests.adapters.BaseAdapter):

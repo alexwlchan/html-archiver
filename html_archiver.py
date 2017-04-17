@@ -2,6 +2,7 @@
 # -*- encoding: utf-8
 
 import base64
+import cgi
 import os
 import re
 import sys
@@ -15,6 +16,9 @@ except ImportError:
 
 from bs4 import BeautifulSoup
 import requests
+from requests_toolbelt.utils.deprecated import (
+    get_encodings_from_content as _get_encodings_from_content
+)
 
 
 DATA_MEDIA_TYPES = {
@@ -28,6 +32,24 @@ DATA_MEDIA_TYPES = {
     'eot': 'font/eot',
     'ttf': 'font/ttf',
 }
+
+
+def _get_encoding_from_headers(headers):
+    """Returns encodings from given HTTP Header Dict.
+
+    This is similar to a function in ``requests.utils``, but unlike that
+    function, it returns ``None`` if it is unable to positively determine
+    the encoding -- whereas requests defaults to ISO-8859-1.
+
+    :param headers: dictionary to extract encoding from.
+    """
+    content_type = headers.get('content-type')
+
+    if content_type:
+        _, params = cgi.parse_header(content_type)
+
+        if 'charset' in params:
+            return params['charset'].strip("'\"")
 
 
 class HTMLArchiver:
@@ -50,25 +72,39 @@ class HTMLArchiver:
         Given a URL, return a single-page HTML archive.
         """
         resp = self.sess.get(url)
+
         if resp.status_code != 200:
-            raise RuntimeError('Unable to fetch %r [%d]' % (
-                url, resp.status_code))
+            raise RuntimeError(
+                "Unable to fetch %r [%d]" % (url, resp.status_code)
+            )
+
+        # We assume that this is an HTML page -- try to work out the
+        # encoding.  By default, requests will use data from the HTTP headers
+        # or default to ISO-8859-1 if none is available.  We should look in
+        # the <meta> tags if we can't work out one from the headers.
+        #
+        # http://docs.python-requests.org/en/master/user/advanced/#encodings
+        # TODO: Test this code.
+        encoding = _get_encoding_from_headers(resp.headers)
+        if encoding is None:
+            encodings = _get_encodings_from_content(resp.text)
+            if len(set(encodings)) > 1:
+                raise RuntimeError(
+                    'Conflicting encodings detected in %r' % url
+                )
+            if encodings:
+                encoding = encodings.pop()
+
+        if encoding is not None:
+            resp.encoding = encoding
+
         return self.archive_html(resp.text, base_url=url)
 
     def archive_html(self, html_string, base_url):
         """
         Given a block of HTML, return a single-page HTML archive.
         """
-        # Make sure there's a <meta charset="utf-8"> tag in the <head>,
-        # because this uses UTF-8.
         soup = BeautifulSoup(html_string, 'html.parser')
-        head = soup.find('head')
-        for meta_tag in head.find_all('meta'):
-            if meta_tag.get('charset') is not None:
-                break
-        else:  # no break
-            html_string = html_string.replace(
-                '<head>', '<head><meta charset="utf-8">')
 
         html_string = self._archive_js_scripts(
             html_string=html_string,

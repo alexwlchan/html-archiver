@@ -28,6 +28,7 @@ setup(
     install_requires=[
         'beautifulsoup4>=4.5.3,<5',
         'requests>=2.13.0,<3',
+        'requests-toolbelt>=0.7.1,<1',
     ],
     license='MIT',
     classifiers=(
