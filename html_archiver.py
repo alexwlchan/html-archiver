@@ -16,6 +16,9 @@ except ImportError:
 
 from bs4 import BeautifulSoup
 import requests
+from requests_toolbelt.utils.deprecated import (
+    get_encodings_from_content as _get_encodings_from_content
+)
 
 
 DATA_MEDIA_TYPES = {
@@ -84,17 +87,16 @@ class HTMLArchiver:
         # TODO: Test this code.
         encoding = _get_encoding_from_headers(resp.headers)
         if encoding is None:
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            charsets = set([
-                m.attrs['charset']
-                for m in soup.find_all('meta')
-                if 'charset' in m.attrs])
-            if len(charsets) not in (0, 1):
+            encodings = _get_encodings_from_content(resp.text)
+            if len(set(encodings)) > 1:
                 raise RuntimeError(
-                    "Multiple <meta> encoding tags in %r" % url
+                    'Conflicting encodings detected in %r' % url
                 )
-            elif len(charsets) == 1:
-                resp.encoding = charsets.pop()
+            if encodings:
+                encoding = encodings.pop()
+
+        if encoding is not None:
+            resp.encoding = encoding
 
         return self.archive_html(resp.text, base_url=url)
 
