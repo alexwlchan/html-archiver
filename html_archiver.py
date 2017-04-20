@@ -9,8 +9,10 @@ import sys
 import warnings
 
 try:
+    from html import escape as html_escape
     from urllib.parse import urljoin, urlparse, unquote_plus
 except ImportError:
+    from cgi import escape as html_escape
     from urllib import unquote_plus
     from urlparse import urljoin, urlparse
 
@@ -294,14 +296,24 @@ class HTMLArchiver:
             resource_url = urljoin(base_url, img_tag['src'])
             data = self._get_base64_encode(resource_url)
 
+            if data is None:
+                continue
+
             match = re.search(
-                r'<img .*?src=(?P<quot>[\'"]?)%s(?P=quot)[^>]*>' % (
-                    re.escape(img_tag['src'])), html_string
+                r'<img (?P<attrs>.*?)src=(?P<quot>[\'"]?)%s(?P=quot)(?P<post_attrs>[^>]*)>' % (
+                    html_escape(re.escape(img_tag['src']))), html_string
             )
+            c = html_string.count(match.group(0))
             assert match is not None, img_tag['src']
             img_tag['src'] = data
-            html_string = html_string.replace(match.group(0), str(img_tag))
-            assert match.group(0) not in html_string
+            html_string = html_string.replace(
+                match.group(0),
+                '<img %ssrc=%s%s%s%s>' % (
+                    match.group('attrs'), match.group('quot'), img_tag['src'],
+                    match.group('quot'), match.group('post_attrs')),
+                1
+            )
+            assert html_string.count(match.group(0)) == c - 1
         return html_string
 
     def archive_css(self, css_string, base_url):

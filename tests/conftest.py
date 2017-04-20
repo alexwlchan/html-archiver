@@ -66,6 +66,7 @@ class LocalFileAdapter(requests.adapters.BaseAdapter):
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), 'inputs',
             path.lstrip('/'))
+        path = path.split('?')[0]
         response = requests.Response()
 
         response.status_code, response.reason = self._chkpath(req.method, path)

@@ -1,0 +1,32 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>This is a page with images</title>
+</head>
+
+<body>
+  <p>This is a page to test how html-archiver handles images.</p>
+
+  <p>Because <code>&gt;img&lt;</code> tags can refer to external resources, they should be inlined where possible.</p>
+
+  <!-- A basic image that works -->
+  <img src="rainbow.png"/>
+
+  <!-- We can include it more than once -->
+  <img src="rainbow.png"/>
+
+  <!-- An image that is missing -->
+  <img src="missing.jpg">
+
+  <!-- Test that other attributes are preserved -->
+  <img alt="a green snake with a red tongue" src="snake.gif" style="border: 1px solid black;">
+
+  <!-- Test that URL encoded junk is interpreted correctly -->
+  <img src="spiral.jpeg?color=black&amp;alt_color=white">
+
+  <!-- Test that if an image is already base64-encoded, it's ignored -->
+  <img src="data:image/foo;base64,0123456789">
+</body>
+
+</html>
